@@ -1,0 +1,53 @@
+# Built files
+build/
+/build/
+/app/build/
+/captures/
+*.apk
+*.aab
+*.aar
+*.ap_
+*.dex
+*.class
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar
+!gradle-wrapper.properties
+
+# Kotlin
+.kotlin/
+
+# Native build
+.externalNativeBuild/
+.cxx/
+
+# Local config — machine specific, never commit
+local.properties
+
+# Release signing — never commit secrets
+keystore.properties
+*.jks
+*.keystore
+release/
+/app/release/
+
+# IntelliJ / Android Studio
+*.iml
+.idea/
+!.idea/codeStyles/
+!.idea/inspectionProfiles/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.swp
+*.swo
+*~
+
+# Claude
+.claude/
