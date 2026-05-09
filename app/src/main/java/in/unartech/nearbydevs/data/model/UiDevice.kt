@@ -21,22 +21,13 @@ data class UiDevice(
     val location: String? = null,
     val server: String? = null,
     val seenAt: String = "",
+    val lastSeenMs: Long = 0L,
     val fresh: Boolean = false,
     val favorite: Boolean = false,
-    // BLE: raw scan record bytes for hex dump
     val rawAdv: ByteArray? = null,
-    // BLE: GATT services + characteristics, populated after connect
     val gattServices: List<ServiceDef> = emptyList(),
-    // SSDP: raw description xml for raw view
     val rawXml: String? = null,
-) {
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other !is UiDevice) return false
-        return id == other.id
-    }
-    override fun hashCode(): Int = id.hashCode()
-}
+)
 
 data class CharFlag(val r: Boolean = false, val w: Boolean = false, val n: Boolean = false) {
     companion object {

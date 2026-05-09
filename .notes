@@ -1,0 +1,23 @@
+Output                                                                                                                    
+  - AAB: app/build/outputs/bundle/release/app-release.aab (3.7 MB)                                                          
+                                                                                                                            
+  Keystore — SAVE THIS, losing it = permanent Play Store lockout                                                            
+  - File: /rajesh_work_dir/Development/Android-projects/nearbydevs/release.jks (gitignored)                                 
+  - Alias: nearbydevs                                                                                                       
+  - Password (store + key): kampsGI8ikw0QSKRDZy6fqKwUstV                                                                    
+  - Valid: 2026-05-09 → 2053-09-24 (~27 yr)                                                                                 
+  - DN: CN=Rajesh Pachaikani, OU=Engineering, O=Unartech, L=Chennai, ST=Tamil Nadu, C=IN                                    
+  - SHA1: 93:09:C8:E3:39:C4:03:E5:00:B0:50:6E:D5:09:4D:59:D9:1C:2B:1C                                                       
+  - SHA256: 29:BB:B2:71:EE:7F:36:F7:94:0D:9B:73:F1:71:16:AC:DD:9B:EF:CA:51:53:35:F4:E3:BC:F9:A5:40:86:F7:59                 
+                                                                                                                            
+  Backup checklist                                                                                                          
+  - Copy release.jks + keystore.properties off this machine (password manager / encrypted drive). Both gitignored — never   
+  commit.                                                                                                                   
+  - Play Console: enroll in Play App Signing → upload this key as upload key. Google holds the app signing key after        
+  enrollment, but lose this upload key = need manual reset via Play support.                                                
+                                                                                                                            
+  Notes                                  
+  - versionCode=1, versionName=1.0 in app/build.gradle.kts — bump before next upload.                                       
+  - applicationId=in.unartech.nearbydevs. Debug variant suffix .debug → release uses bare ID.
+  - Keystore is JKS. Optionally migrate to PKCS12: keytool -importkeystore -srckeystore release.jks -destkeystore 
+  release.p12 -deststoretype pkcs12.  

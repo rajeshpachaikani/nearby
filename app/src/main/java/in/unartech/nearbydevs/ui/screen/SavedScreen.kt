@@ -22,13 +22,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import `in`.unartech.nearbydevs.data.model.UiDevice
 import `in`.unartech.nearbydevs.ui.component.GhPill
 import `in`.unartech.nearbydevs.ui.component.NbdAppBar
@@ -40,6 +45,8 @@ import `in`.unartech.nearbydevs.ui.theme.color
 import `in`.unartech.nearbydevs.ui.theme.container
 import `in`.unartech.nearbydevs.ui.viewmodel.DiscoveryViewModel
 
+private const val NEARBY_TIMEOUT_MS = 10_000L
+
 @Composable
 fun SavedScreen(
     vm: DiscoveryViewModel,
@@ -48,6 +55,14 @@ fun SavedScreen(
 ) {
     val devices by vm.devices.collectAsState()
     val faves = devices.filter { it.favorite }
+
+    var nowMs by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            nowMs = System.currentTimeMillis()
+            delay(2000)
+        }
+    }
 
     Column(modifier = modifier.fillMaxSize()) {
         NbdAppBar(title = "Saved") { GhPill() }
@@ -65,7 +80,10 @@ fun SavedScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(faves) { d -> SavedTile(d, onClick = { onOpenDevice(d.id) }) }
+                items(faves) { d ->
+                    val isNearby = d.lastSeenMs > 0 && (nowMs - d.lastSeenMs) < NEARBY_TIMEOUT_MS
+                    SavedTile(d, isNearby = isNearby, onClick = { onOpenDevice(d.id) })
+                }
             }
         }
     }
@@ -101,7 +119,7 @@ private fun Empty() {
 }
 
 @Composable
-private fun SavedTile(device: UiDevice, onClick: () -> Unit) {
+private fun SavedTile(device: UiDevice, isNearby: Boolean, onClick: () -> Unit) {
     val proto = LocalProtocolColors.current
     Column(
         modifier = Modifier
@@ -112,7 +130,27 @@ private fun SavedTile(device: UiDevice, onClick: () -> Unit) {
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ProtoIcon(protocol = device.protocol)
+        androidx.compose.foundation.layout.Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            ProtoIcon(protocol = device.protocol)
+            if (!isNearby) {
+                Box(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        text = "Not nearby",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
         Text(
             text = device.name,
             style = MaterialTheme.typography.titleSmall,

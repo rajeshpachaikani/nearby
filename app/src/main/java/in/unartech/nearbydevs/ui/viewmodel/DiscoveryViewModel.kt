@@ -3,6 +3,9 @@ package `in`.unartech.nearbydevs.ui.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import `in`.unartech.nearbydevs.data.FavoritesStore
+import `in`.unartech.nearbydevs.data.toSavedDevice
+import `in`.unartech.nearbydevs.data.toUiDevice
 import `in`.unartech.nearbydevs.data.model.BleDevice
 import `in`.unartech.nearbydevs.data.model.DeviceType
 import `in`.unartech.nearbydevs.data.model.LogEvent
@@ -53,6 +56,7 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
     private val mdnsScanner = MdnsScanner(application)
     private val bleScanner = BleScanner(application)
     private val bleConnector = BleConnector(application)
+    private val favoritesStore = FavoritesStore(application)
     private val timeFmt = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     private val _scanning = MutableStateFlow(false)
@@ -98,6 +102,23 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
     private var gattJob: Job? = null
 
     private var packetCounter = 0
+
+    init {
+        viewModelScope.launch {
+            val saved = favoritesStore.load().map { it.toUiDevice() }
+            if (saved.isNotEmpty()) {
+                _devices.update { current ->
+                    val existingIds = current.map { it.id }.toSet()
+                    current + saved.filter { it.id !in existingIds }
+                }
+            }
+        }
+    }
+
+    private fun persistFavorites() {
+        val snapshot = _devices.value.filter { it.favorite }.map { it.toSavedDevice() }
+        viewModelScope.launch { favoritesStore.save(snapshot) }
+    }
 
     fun setFilter(f: ProtocolFilter) { _filter.value = f }
     fun setQuery(q: String) { _query.value = q }
@@ -152,6 +173,7 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
         _devices.update { list ->
             list.map { if (it.id == id) it.copy(favorite = !it.favorite) else it }
         }
+        persistFavorites()
     }
 
     fun deviceById(id: String?): UiDevice? = id?.let { x -> _devices.value.find { it.id == x } }
@@ -250,6 +272,7 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
             connectable = d.isConnectable,
             services = d.advertisedServices.map { it.toString() },
             seenAt = now,
+            lastSeenMs = System.currentTimeMillis(),
             fresh = existing == null,
             favorite = existing?.favorite ?: false,
             rawAdv = d.rawScanRecord,
@@ -281,6 +304,7 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
             ipv4 = d.ipAddresses.firstOrNull(),
             txt = d.txtRecords,
             seenAt = now,
+            lastSeenMs = System.currentTimeMillis(),
             fresh = existing == null,
             favorite = existing?.favorite ?: false,
         )
@@ -310,6 +334,7 @@ class DiscoveryViewModel(application: Application) : AndroidViewModel(applicatio
             ipv4 = d.ipAddress,
             port = d.port.takeIf { it > 0 },
             seenAt = now,
+            lastSeenMs = System.currentTimeMillis(),
             fresh = existing == null,
             favorite = existing?.favorite ?: false,
             rawXml = d.rawXml.takeIf { it.isNotBlank() },

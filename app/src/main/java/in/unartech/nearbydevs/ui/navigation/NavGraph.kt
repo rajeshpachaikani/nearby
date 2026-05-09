@@ -1,5 +1,6 @@
 package `in`.unartech.nearbydevs.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -101,6 +102,11 @@ private fun NbdAppContent(vm: DiscoveryViewModel) {
                         .fillMaxSize()
                         .background(MaterialTheme.colorScheme.surface),
                 )
+                BackHandler(enabled = !showConnect) {
+                    vm.openDevice(null)
+                }
+            } else if (tab != NavTab.Discover) {
+                BackHandler { tab = NavTab.Discover }
             }
         }
     }
@@ -108,6 +114,7 @@ private fun NbdAppContent(vm: DiscoveryViewModel) {
     if (showConnect) {
         val device = vm.deviceById(openId)
         if (device != null) {
+            BackHandler { showConnect = false }
             ConnectSheet(vm = vm, device = device, onDismiss = { showConnect = false })
         }
     }

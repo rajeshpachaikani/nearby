@@ -27,7 +27,6 @@ const val NEARBY_REPO_URL = "https://github.com/rajeshpachaikani/nearby"
 
 @Composable
 fun GhPill(
-    stars: String = "1.2k",
     onClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -54,12 +53,6 @@ fun GhPill(
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
-        )
-        Text(
-            text = "★ $stars",
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.tertiary,
         )
     }
 }

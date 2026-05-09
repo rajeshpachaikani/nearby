@@ -10,11 +10,14 @@
 -keep class kotlin.Metadata { *; }
 
 # Gson reflection-based (de)serialization.
--keepattributes *Annotation*
+-keepattributes *Annotation*,Signature
 -dontwarn sun.misc.**
 -keep class com.google.gson.** { *; }
 -keep class com.google.gson.stream.** { *; }
 -keep class com.google.gson.reflect.TypeToken { *; }
+# Anonymous TypeToken subclasses (e.g. new TypeToken<List<X>>() {}) — generic
+# superclass Signature must survive R8 or getTypeTokenTypeArgument throws.
+-keep,allowobfuscation class * extends com.google.gson.reflect.TypeToken
 -keep class * extends com.google.gson.TypeAdapter
 -keep class * implements com.google.gson.TypeAdapterFactory
 -keep class * implements com.google.gson.JsonSerializer
@@ -23,9 +26,9 @@
     @com.google.gson.annotations.SerializedName <fields>;
 }
 
-# App data models serialized via Gson (export-as-JSON feature).
--keep class in.unartech.nearbydevs.data.model.** { *; }
--keepclassmembers class in.unartech.nearbydevs.data.model.** { *; }
+# App data classes serialized via Gson (UiDevice/SavedDevice/scan models etc).
+-keep class in.unartech.nearbydevs.data.** { *; }
+-keepclassmembers class in.unartech.nearbydevs.data.** { *; }
 
 # Compose runtime.
 -keep class androidx.compose.runtime.** { *; }

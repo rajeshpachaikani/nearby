@@ -1,5 +1,9 @@
 package `in`.unartech.nearbydevs.ui.screen
 
+import android.content.Context
+import android.content.Intent
+import androidx.core.content.FileProvider
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,6 +87,7 @@ fun DeviceDetailScreen(
         else listOf(DetailTab.Info, DetailTab.Raw)
     }
     var tab by remember(device.protocol) { mutableStateOf(tabs[0]) }
+    val ctx = LocalContext.current
 
     Box(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         LazyColumn(
@@ -96,6 +102,7 @@ fun DeviceDetailScreen(
                     isFave = device.favorite,
                     onBack = onBack,
                     onToggleFave = { vm.toggleFavorite(device.id) },
+                    onShare = { shareDeviceInfo(ctx, device) },
                 )
             }
             item { Hero(device) }
@@ -123,7 +130,7 @@ fun DeviceDetailScreen(
 }
 
 @Composable
-private fun Topbar(title: String, isFave: Boolean, onBack: () -> Unit, onToggleFave: () -> Unit) {
+private fun Topbar(title: String, isFave: Boolean, onBack: () -> Unit, onToggleFave: () -> Unit, onShare: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -149,10 +156,82 @@ private fun Topbar(title: String, isFave: Boolean, onBack: () -> Unit, onToggleF
                 tint = if (isFave) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = { /* share */ }) {
+        IconButton(onClick = onShare) {
             Icon(Icons.Filled.Share, contentDescription = "Share")
         }
     }
+}
+
+private fun buildDeviceInfoText(d: UiDevice): String = buildString {
+    appendLine("Nearby — device info")
+    appendLine("====================")
+    appendLine("Name      : ${d.name}")
+    appendLine("Protocol  : ${d.protocol}")
+    appendLine("ID        : ${d.id}")
+    appendLine("MAC/Host  : ${d.mac}")
+    appendLine("Vendor    : ${d.vendor}")
+    appendLine("Intent    : ${d.intent}")
+    d.rssi?.let { appendLine("RSSI      : $it dBm") }
+    d.txPowerDbm?.let { appendLine("TX power  : $it dBm") }
+    d.advIntervalMs?.let { appendLine("Adv int   : ${it} ms") }
+    appendLine("Connectable: ${d.connectable}")
+    if (d.services.isNotEmpty()) {
+        appendLine("Services  :")
+        d.services.forEach { appendLine("  - $it") }
+    }
+    d.port?.let { appendLine("Port      : $it") }
+    d.ipv4?.let { appendLine("IPv4      : $it") }
+    if (d.txt.isNotEmpty()) {
+        appendLine("TXT       :")
+        d.txt.forEach { (k, v) -> appendLine("  $k=$v") }
+    }
+    d.location?.let { appendLine("LOCATION  : $it") }
+    d.server?.let { appendLine("SERVER    : $it") }
+    appendLine("Seen at   : ${d.seenAt}")
+    if (d.gattServices.isNotEmpty()) {
+        appendLine()
+        appendLine("GATT services")
+        appendLine("-------------")
+        d.gattServices.forEach { svc ->
+            appendLine("• ${svc.name}  (${svc.uuid})  [${svc.tag}]")
+            svc.chars.forEach { c ->
+                val flags = listOfNotNull(
+                    if (c.flags.r) "R" else null,
+                    if (c.flags.w) "W" else null,
+                    if (c.flags.n) "N" else null,
+                ).joinToString("")
+                appendLine("    - ${c.name}  ${c.uuid}  [$flags]")
+            }
+        }
+    }
+    d.rawAdv?.let { raw ->
+        appendLine()
+        appendLine("Raw adv (${raw.size} B)")
+        appendLine(raw.joinToString(" ") { (it.toInt() and 0xFF).toString(16).uppercase().padStart(2, '0') })
+    }
+    d.rawXml?.let {
+        appendLine()
+        appendLine("SSDP description XML")
+        appendLine(it)
+    }
+}
+
+private fun shareDeviceInfo(ctx: Context, device: UiDevice) {
+    val dir = File(ctx.cacheDir, "shared").apply { mkdirs() }
+    val file = File(dir, "device_info.txt")
+    file.writeText(buildDeviceInfoText(device))
+    val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", file)
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        putExtra(Intent.EXTRA_SUBJECT, "Nearby device: ${device.name}")
+        putExtra(Intent.EXTRA_TEXT, "Device info attached.")
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    val chooser = Intent.createChooser(send, "Share device info").apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    ctx.startActivity(chooser)
 }
 
 @Composable
